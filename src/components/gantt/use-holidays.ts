@@ -7,21 +7,20 @@ import {
 } from "../../helpers/adjust-task-to-working-dates";
 import { getNextWorkingDate as defaultGetNextWorkingDate } from '../../helpers/get-next-working-date';
 import { getPreviousWorkingDate as defaultGetPreviousWorkingDate } from '../../helpers/get-previous-working-date';
-import { BarMoveAction } from '../../types/gantt-task-actions';
 
-import { DateSetup, Task } from '../../types/public-types';
+import { AdjustTaskToWorkingDatesParams, DateSetup } from '../../types/public-types';
 
 type UseHolidaysParams = {
   checkIsHolidayProp: (date: Date, minTaskDate: Date, dateSetup: DateSetup) => boolean;
   dateSetup: DateSetup;
-  isAdjustToWorkingDays: boolean;
+  isAdjustToWorkingDates: boolean;
   minTaskDate: Date;
 };
 
 export const useHolidays = ({
   checkIsHolidayProp,
   dateSetup,
-  isAdjustToWorkingDays,
+  isAdjustToWorkingDates,
   minTaskDate,
 }: UseHolidaysParams) => {
   const checkIsHoliday = useCallback(
@@ -50,12 +49,8 @@ export const useHolidays = ({
       action,
       changedTask,
       originalTask,
-    }: {
-      action: BarMoveAction;
-      changedTask: Task;
-      originalTask: Task;
-    }) => {
-      if (isAdjustToWorkingDays) {
+    }: AdjustTaskToWorkingDatesParams) => {
+      if (isAdjustToWorkingDates) {
         return defaultAdjustTaskToWorkingDates({
           action,
           changedTask,
@@ -74,7 +69,7 @@ export const useHolidays = ({
       dateSetup,
       getNextWorkingDate,
       getPreviousWorkingDate,
-      isAdjustToWorkingDays,
+      isAdjustToWorkingDates,
     ],
   );
 

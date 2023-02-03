@@ -548,7 +548,7 @@ export interface GanttProps extends EventOption, DisplayOption, StylingOption {
   /**
    * Move dates of tasks to working days during change
    */
-  isAdjustToWorkingDays?: boolean;
+  isAdjustToWorkingDates?: boolean;
   tasks: readonly TaskOrEmpty[];
 }
 

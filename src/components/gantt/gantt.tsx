@@ -47,7 +47,10 @@ import { getMapTaskToGlobalIndex } from "../../helpers/get-map-task-to-global-in
 import { getMapTaskToRowIndex } from "../../helpers/get-map-task-to-row-index";
 import { getChildOutOfParentWarnings } from "../../helpers/get-child-out-of-parent-warnings";
 import { getDependencyMapAndWarnings } from "../../helpers/get-dependency-map-and-warnings";
-import { getMapTaskToCoordinates } from "../../helpers/get-map-task-to-coordinates";
+import {
+  countTaskCoordinates as defaultCountTaskCoordinates,
+  getMapTaskToCoordinates,
+} from "../../helpers/get-map-task-to-coordinates";
 import { getCriticalPath } from "../../helpers/get-critical-path";
 import { getMapTaskToNestedIndex } from "../../helpers/get-map-task-to-nested-index";
 import { getInitialClosedTasks } from "../../helpers/get-initial-closed-tasks";
@@ -73,7 +76,6 @@ import { useHorizontalScrollbars } from "./use-horizontal-scrollbars";
 import { getDateByOffset } from "../../helpers/get-date-by-offset";
 import { getDatesDiff } from "../../helpers/get-dates-diff";
 import { DependenciesColumn } from "../task-list/columns/dependencies-column";
-import { useGetTaskCoordinates } from "./use-get-task-coordinates";
 import { BarMoveAction } from "../../types/gantt-task-actions";
 import { getMinAndMaxChildsMap } from "../../helpers/get-min-and-max-childs-map";
 import { useGetTaskCurrentState } from "./use-get-task-current-state";
@@ -202,7 +204,7 @@ export const Gantt: React.FC<GanttProps> = ({
   isShowDependencyWarnings = false,
   isShowTaskNumbers = true,
   isUnknownDates = false,
-  isAdjustToWorkingDays = true,
+  isAdjustToWorkingDates = true,
   onAddTask = undefined,
   onAddTaskClick = undefined,
   onArrowDoubleClick: onArrowDoubleClickProp = undefined,
@@ -522,7 +524,7 @@ export const Gantt: React.FC<GanttProps> = ({
   } = useHolidays({
     checkIsHolidayProp,
     dateSetup,
-    isAdjustToWorkingDays,
+    isAdjustToWorkingDates,
     minTaskDate,
   });
 
@@ -538,6 +540,32 @@ export const Gantt: React.FC<GanttProps> = ({
   );
 
   const svgClientWidthRef = useLatest(renderedColumnIndexes && renderedColumnIndexes[4]);
+
+  const countTaskCoordinates = useCallback(
+    (task: Task) => defaultCountTaskCoordinates(
+      task,
+      taskToRowIndexMap,
+      startDate,
+      viewMode,
+      rtl,
+      fullRowHeight,
+      taskHeight,
+      taskYOffset,
+      distances,
+      svgWidth,
+    ),
+    [
+      taskToRowIndexMap,
+      startDate,
+      viewMode,
+      rtl,
+      fullRowHeight,
+      taskHeight,
+      taskYOffset,
+      distances,
+      svgWidth,
+    ],
+  );
 
   const mapTaskToCoordinates = useMemo(() => getMapTaskToCoordinates(
     tasks,
@@ -1775,23 +1803,22 @@ export const Gantt: React.FC<GanttProps> = ({
     visibleTasks,
   });
 
-  const getTaskCoordinates = useGetTaskCoordinates(
+  const getTaskCurrentState = useGetTaskCurrentState({
+    adjustTaskToWorkingDates,
     changeInProgress,
-    mapTaskToCoordinates,
-    tasksMap,
-    minAndMaxChildsMap,
+    isAdjustToWorkingDates,
     isMoveChildsWithParent,
     isRecountParentsOnChange,
-    rtl,
-  );
+    mapTaskToCoordinates,
+    minAndMaxChildsMap,
+    roundEndDate,
+    roundStartDate,
+    tasksMap,
+  });
 
-  const getTaskCurrentState = useGetTaskCurrentState(
-    changeInProgress,
-    mapTaskToCoordinates,
-    tasksMap,
-    minAndMaxChildsMap,
-    isMoveChildsWithParent,
-    isRecountParentsOnChange,
+  const getTaskCoordinates = useCallback(
+    (task: Task) => countTaskCoordinates(getTaskCurrentState(task)),
+    [countTaskCoordinates, getTaskCurrentState],
   );
 
   const contextMenuOptions = useMemo<ContextMenuOptionType[]>(() => {

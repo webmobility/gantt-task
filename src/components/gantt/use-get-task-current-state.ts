@@ -9,24 +9,61 @@ import minDate from 'date-fns/min';
 import { checkIsDescendant } from '../../helpers/check-is-descendant';
 
 import type {
+  AdjustTaskToWorkingDatesParams,
   ChangeInProgress,
   MapTaskToCoordinates,
   MinAndMaxChildsMap,
   Task,
   TaskMapByLevel,
 } from '../../types/public-types';
+import { roundTaskDates } from '../../helpers/round-task-dates';
 
-export const useGetTaskCurrentState = (
-  changeInProgress: ChangeInProgress | null,
-  mapTaskToCoordinates: MapTaskToCoordinates,
-  tasksMap: TaskMapByLevel,
-  minAndMaxChildsMap: MinAndMaxChildsMap,
-  isMoveChildsWithParent: boolean,
-  isRecountParentsOnChange: boolean,
-) => {
-  const getTaskCurrentState = useCallback((task: Task): Task => {
+type UseGetTaskCurrentStateParams = {
+  adjustTaskToWorkingDates: (params: AdjustTaskToWorkingDatesParams) => Task;
+  changeInProgress: ChangeInProgress | null;
+  isAdjustToWorkingDates: boolean;
+  isMoveChildsWithParent: boolean;
+  isRecountParentsOnChange: boolean;
+  mapTaskToCoordinates: MapTaskToCoordinates;
+  minAndMaxChildsMap: MinAndMaxChildsMap;
+  roundEndDate: (date: Date) => Date;
+  roundStartDate: (date: Date) => Date;
+  tasksMap: TaskMapByLevel;
+};
+
+export const useGetTaskCurrentState = ({
+  adjustTaskToWorkingDates,
+  changeInProgress,
+  isAdjustToWorkingDates,
+  isMoveChildsWithParent,
+  isRecountParentsOnChange,
+  mapTaskToCoordinates,
+  minAndMaxChildsMap,
+  roundEndDate,
+  roundStartDate,
+  tasksMap,
+}: UseGetTaskCurrentStateParams) => {
+  const getTaskCurrentState = useCallback((dirtyTask: Task): Task => {
+    const task = roundTaskDates(
+      dirtyTask,
+      roundStartDate,
+      roundEndDate,
+    );
+
     if (changeInProgress) {
-      if (changeInProgress.task === task) {
+      if (changeInProgress.task === dirtyTask) {
+        if (isAdjustToWorkingDates) {
+          return adjustTaskToWorkingDates({
+            action: changeInProgress.action,
+            changedTask: roundTaskDates(
+              changeInProgress.changedTask,
+              roundStartDate,
+              roundEndDate,
+            ),
+            originalTask: dirtyTask,
+          });
+        }
+
         return changeInProgress.changedTask;
       }
 
@@ -43,11 +80,25 @@ export const useGetTaskCurrentState = (
           tsDiff,
         } = changeInProgress;
 
-        return {
+        const movedTask: Task = {
           ...task,
           end: addMilliseconds(task.end, tsDiff),
           start: addMilliseconds(task.start, tsDiff),
         };
+
+        if (isAdjustToWorkingDates) {
+          return adjustTaskToWorkingDates({
+            action: changeInProgress.action,
+            changedTask: roundTaskDates(
+              movedTask,
+              roundStartDate,
+              roundEndDate,
+            ),
+            originalTask: task,
+          });
+        }
+
+        return movedTask;
       }
 
       if (
@@ -85,13 +136,13 @@ export const useGetTaskCurrentState = (
           const minStartDate = minDate([
             firstMin.start,
             secondMin.start,
-            changeInProgress.task.start,
+            roundStartDate(changeInProgress.changedTask.start),
           ]);
 
           const maxEndDate = maxDate([
             firstMax.end,
             secondMax.end,
-            changeInProgress.task.end,
+            roundEndDate(changeInProgress.changedTask.end),
           ]);
 
           return {
@@ -105,11 +156,15 @@ export const useGetTaskCurrentState = (
 
     return task;
   }, [
+    adjustTaskToWorkingDates,
     changeInProgress,
+    isAdjustToWorkingDates,
     isMoveChildsWithParent,
     isRecountParentsOnChange,
     mapTaskToCoordinates,
     minAndMaxChildsMap,
+    roundEndDate,
+    roundStartDate,
     tasksMap,
   ]);
 
