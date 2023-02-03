@@ -1,0 +1,16 @@
+import { Meta, Story } from '@storybook/addon-docs';
+
+import Gantt from './Gantt';
+
+<Meta title="Gantt/simple" component={Gantt} />
+
+
+export const Template = (props) => (<Gantt {...props} />)
+
+<Story
+  name="FirstStory"
+  args={{}}
+>
+  {Template.bind({})}
+</Story>
+
